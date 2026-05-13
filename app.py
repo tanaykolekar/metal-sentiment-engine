@@ -1,119 +1,85 @@
 import streamlit as st
 import pandas as pd
 
-# ==========================================
-# STEP 1: Page Config & Data Pipeline
-# ==========================================
-# This must be the very first Streamlit command
+# Set up the page for a wider, cleaner layout
 st.set_page_config(page_title="Metal Sentiment Engine", layout="wide")
+st.title("📈 Industrial Metals Sentiment & Catalyst Engine")
+st.markdown("An autonomous AI pipeline analyzing global news to generate market sentiment for industrial metals.")
 
-@st.cache_data
-def load_and_clean_data(file_path):
-    # Load your sheet/csv
-    df = pd.read_csv(file_path) 
+SHEET_ID = "1F2CRDPbZsgZgsFBOP8i97OB5jn_VXcw78u9A0dbQe_Q"
+CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=0"
+
+@st.cache_data(ttl=60) 
+def load_data():
+    df = pd.read_csv(CSV_URL)
     
-    # Standardize Metal Names to Title Case (Fixes the Copper/copper issue)
-    df['metal'] = df['metal'].astype(str).str.title()
+    # 1. Clean headers
+    df.columns = df.columns.str.strip()
     
-    # Convert timestamps to proper datetime objects
-    df['Timestamp'] = pd.to_datetime(df['Timestamp'])
+    # 2. Remove empty rows
+    df = df.dropna(subset=['metal'])
+    df = df[df['metal'] != ""]
+
+    # 3. NORMALIZATION: Force all metals to Title Case (e.g., 'copper' -> 'Copper')
+    df['metal'] = df['metal'].astype(str).str.title().str.strip()
+
+    # 4. Handle Timestamps
+    target_col = 'Timestamp' if 'Timestamp' in df.columns else 'timestamp'
+    if target_col in df.columns:
+        df[target_col] = pd.to_datetime(df[target_col], errors='coerce')
+        df = df.dropna(subset=[target_col]) # Drop if timestamp failed to parse
+        df = df.sort_values(by=target_col, ascending=False)
     
-    # Sort by time so charts render chronologically
-    df = df.sort_values('Timestamp')
+    return df, target_col
+
+try:
+    df, time_col = load_data()
     
-    return df
-
-# Initialize your master dataframe
-# IMPORTANT: Replace "your_database.csv" with your actual file path!
-df = load_and_clean_data("your_database.csv")
-
-
-# ==========================================
-# STEP 2: Sidebar Navigation & Filtering
-# ==========================================
-st.sidebar.title("Engine Controls")
-
-# Create a multi-select box populated by the unique (and now cleaned) metal names
-available_metals = df['metal'].unique()
-
-selected_metals = st.sidebar.multiselect(
-    "Filter by Metal:", 
-    options=available_metals, 
-    default=available_metals # Default to showing all
-)
-
-# Create the filtered dataframe based on the user's selection
-filtered_df = df[df['metal'].isin(selected_metals)]
-
-
-# ==========================================
-# STEP 3: Executive Summary & Metrics
-# ==========================================
-st.title("Metal Sentiment Engine")
-
-st.subheader("Market Overview")
-st.info("Market sentiment is currently volatile. Copper shows downward pressure due to London warehouse pricing, while Palladium applications advance.")
-
-st.markdown("### Latest Signals")
-
-# Only attempt to draw metrics if there's data and a selection
-if not filtered_df.empty:
-    # Get the latest entry for each selected metal
-    latest_data = filtered_df.drop_duplicates(subset=['metal'], keep='last')
+    st.subheader("Latest Market Signals")
     
-    # Create dynamic columns based on how many metals are selected
-    columns = st.columns(len(latest_data))
+    metals = [m for m in df['metal'].unique() if pd.notna(m)]
     
-    for i, (index, row) in enumerate(latest_data.iterrows()):
-        metal_name = row['metal']
-        current_score = row['score']
+    if len(metals) > 0:
+        # UX UPGRADE: Chunk the metrics into rows of 4 so they don't squish
+        num_columns = 4
+        for i in range(0, len(metals), num_columns):
+            cols = st.columns(num_columns)
+            chunk = metals[i:i + num_columns]
+            
+            for j, metal in enumerate(chunk):
+                metal_df = df[df['metal'] == metal]
+                if not metal_df.empty:
+                    latest_data = metal_df.iloc[0]
+                    
+                    # Truncate overly long AI text to keep the UI clean
+                    catalyst_text = str(latest_data['catalyst'])
+                    if len(catalyst_text) > 90:
+                        catalyst_text = catalyst_text[:87] + "..."
+                        
+                    with cols[j]:
+                        st.metric(label=f"{metal} Sentiment", value=latest_data['score'])
+                        st.caption(f"**Catalyst:** {catalyst_text}")
+            
+            # Add a subtle visual divider between rows of metrics
+            st.write("---")
+
+        st.subheader("Sentiment Trend Over Time")
         
-        # Mock delta calculation (replace with actual day-over-day math later)
-        mock_delta = 0.1 if current_score > 0 else -0.1 
+        # CHART UPGRADE: Pivot and forward-fill so lines connect properly
+        chart_df = df.copy()
+        chart_df.set_index(time_col, inplace=True)
+        chart_data = chart_df.pivot(columns='metal', values='score')
         
-        with columns[i]:
-            st.metric(
-                label=f"{metal_name} Sentiment", 
-                value=f"{current_score:.2f}", 
-                delta=f"{mock_delta:.2f}"
-            )
-else:
-    st.warning("Please select at least one metal from the sidebar to view metrics.")
-
-
-# ==========================================
-# STEP 4: Visualizations
-# ==========================================
-st.markdown("---")
-st.subheader("Sentiment Trend Over Time")
-
-if not filtered_df.empty:
-    # Pivot the table so columns are metals and rows are timestamps
-    # Using pivot_table handles duplicate timestamps better than simple pivot
-    chart_data = filtered_df.pivot_table(index='Timestamp', columns='metal', values='score', aggfunc='mean')
-    st.line_chart(chart_data)
-
-
-# ==========================================
-# STEP 5: Expandable Catalyst Feed
-# ==========================================
-st.markdown("---")
-st.subheader("Catalyst Feed")
-
-if not filtered_df.empty:
-    # Sort to show the newest catalysts first
-    feed_df = filtered_df.sort_values('Timestamp', ascending=False)
-    
-    for index, row in feed_df.iterrows():
-        # Set the color indicator based on sentiment score
-        status_icon = "🟢" if row['score'] > 0 else "🔴" if row['score'] < 0 else "⚪"
+        # ffill() carries the last known score forward until a new one drops
+        chart_data = chart_data.ffill() 
         
-        # Format the timestamp for clean reading
-        time_str = row['Timestamp'].strftime('%b %d, %H:%M')
+        st.line_chart(chart_data)
+
+        st.subheader("Raw AI Analysis Database")
+        st.dataframe(df, width='stretch') 
         
-        # Create the expander title
-        header = f"{status_icon} {row['metal']} | Score: {row['score']} | {time_str}"
-        
-        with st.expander(header):
-            st.write("**AI Analysis Catalyst:**")
-            st.write(row['catalyst'])
+    else:
+        st.info("The database is currently empty. Waiting for n8n to send data...")
+
+except Exception as e:
+    st.error(f"Could not load data. Error: {e}")

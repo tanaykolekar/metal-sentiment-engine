@@ -1,53 +1,47 @@
 import streamlit as st
 import pandas as pd
 
-# Set up the page
-st.set_page_config(page_title="Metal Sentiment Engine", layout="wide")
-st.title("📈 Industrial Metals Sentiment & Catalyst Engine")
-st.markdown("An autonomous AI pipeline analyzing global news to generate market sentiment for industrial metals.")
-
-# The public CSV export URL for your specific Google Sheet
+# The NEW Sheet ID from your screenshot (image_477be2.png)
 SHEET_ID = "1F2CRDPbZsgZgsFBOP8i97OB5jn_VXcw78u9A0dbQe_Q"
-CSV_URL = f"https://docs.google.com/spreadsheets/d/1F2CRDPbZsgZgsFBOP8i97OB5jn_VXcw78u9A0dbQe_Q/edit?gid=0#gid=0"
+CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=0"
 
-# Cache the data for 10 minutes so it doesn't overload Google Sheets
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=60) # Reduced to 1 minute for testing
 def load_data():
     df = pd.read_csv(CSV_URL)
-    # Ensure Timestamp is a datetime object
-    df['Timestamp'] = pd.to_datetime(df['Timestamp'])
-    # Sort so the newest data is at the top
-    df = df.sort_values(by='Timestamp', ascending=False)
-    return df
+    
+    # CLEANING: Strip hidden spaces from headers and make them case-insensitive
+    df.columns = df.columns.str.strip()
+    
+    # Debugging: If it still fails, this will show you what columns exist
+    # st.write("Columns found:", list(df.columns)) 
+
+    # Look for timestamp regardless of 'T' or 't'
+    target_col = 'Timestamp' if 'Timestamp' in df.columns else 'timestamp'
+    
+    if target_col in df.columns:
+        df[target_col] = pd.to_datetime(df[target_col])
+        df = df.sort_values(by=target_col, ascending=False)
+    
+    return df, target_col
 
 try:
-    df = load_data()
+    df, time_col = load_data()
     
-    # Create a layout with columns for the latest metrics
     st.subheader("Latest Market Signals")
     metals = df['metal'].unique()
     cols = st.columns(len(metals))
     
     for i, metal in enumerate(metals):
-        # Get the most recent row for this specific metal
         latest_data = df[df['metal'] == metal].iloc[0]
-        
         with cols[i]:
-            st.metric(
-                label=f"{metal.capitalize()} Sentiment", 
-                value=latest_data['score']
-            )
+            st.metric(label=f"{metal.capitalize()} Sentiment", value=latest_data['score'])
             st.caption(f"**Catalyst:** {latest_data['catalyst']}")
 
     st.divider()
-
-    # Show the historical trend chart
     st.subheader("Sentiment Trend Over Time")
-    # Pivot the data so each metal is its own line on the chart
-    chart_data = df.pivot(index='Timestamp', columns='metal', values='score')
+    chart_data = df.pivot(index=time_col, columns='metal', values='score')
     st.line_chart(chart_data)
 
-    # Show the raw database
     st.subheader("Raw AI Analysis Database")
     st.dataframe(df, use_container_width=True)
 

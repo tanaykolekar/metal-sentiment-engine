@@ -1,10 +1,10 @@
 import streamlit as st
 import pandas as pd
 
-# Set up the page for a wider, cleaner layout
-st.set_page_config(page_title="Metal Sentiment Engine", layout="wide")
+# 1. Page Configuration
+st.set_page_config(page_title="Metal Sentiment Engine", layout="wide", page_icon="📈")
 st.title("📈 Industrial Metals Sentiment & Catalyst Engine")
-st.markdown("An autonomous AI pipeline analyzing global news to generate market sentiment for industrial metals.")
+st.markdown("An autonomous AI pipeline analyzing global news to generate market sentiment.")
 
 SHEET_ID = "1F2CRDPbZsgZgsFBOP8i97OB5jn_VXcw78u9A0dbQe_Q"
 CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=0"
@@ -12,75 +12,78 @@ CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&
 @st.cache_data(ttl=60) 
 def load_data():
     df = pd.read_csv(CSV_URL)
-    
-    # 1. Clean headers
     df.columns = df.columns.str.strip()
-    
-    # 2. Remove empty rows
     df = df.dropna(subset=['metal'])
     df = df[df['metal'] != ""]
 
-    # 3. NORMALIZATION: Force all metals to Title Case (e.g., 'copper' -> 'Copper')
+    # 2. STRICT NORMALIZATION: Map rogue AI outputs to clean categories
     df['metal'] = df['metal'].astype(str).str.title().str.strip()
+    metal_mapping = {
+        'Iron': 'Iron Ore',
+        'Aluminium': 'Aluminum'
+    }
+    df['metal'] = df['metal'].replace(metal_mapping)
 
-    # 4. Handle Timestamps
     target_col = 'Timestamp' if 'Timestamp' in df.columns else 'timestamp'
     if target_col in df.columns:
         df[target_col] = pd.to_datetime(df[target_col], errors='coerce')
-        df = df.dropna(subset=[target_col]) # Drop if timestamp failed to parse
+        df = df.dropna(subset=[target_col])
         df = df.sort_values(by=target_col, ascending=False)
     
     return df, target_col
 
 try:
     df, time_col = load_data()
-    
-    st.subheader("Latest Market Signals")
-    
     metals = [m for m in df['metal'].unique() if pd.notna(m)]
     
     if len(metals) > 0:
-        # UX UPGRADE: Chunk the metrics into rows of 4 so they don't squish
-        num_columns = 4
-        for i in range(0, len(metals), num_columns):
-            cols = st.columns(num_columns)
-            chunk = metals[i:i + num_columns]
-            
-            for j, metal in enumerate(chunk):
-                metal_df = df[df['metal'] == metal]
-                if not metal_df.empty:
-                    latest_data = metal_df.iloc[0]
-                    
-                    # Truncate overly long AI text to keep the UI clean
-                    catalyst_text = str(latest_data['catalyst'])
-                    if len(catalyst_text) > 90:
-                        catalyst_text = catalyst_text[:87] + "..."
-                        
-                    with cols[j]:
-                        st.metric(label=f"{metal} Sentiment", value=latest_data['score'])
-                        st.caption(f"**Catalyst:** {catalyst_text}")
-            
-            # Add a subtle visual divider between rows of metrics
-            st.write("---")
-
-        st.subheader("Sentiment Trend Over Time")
-        
-       # CHART UPGRADE: Use pivot_table to safely average duplicate timestamps
-        chart_data = df.pivot_table(
-            index=time_col, 
-            columns='metal', 
-            values='score', 
-            aggfunc='mean'
+        # 3. INTERACTIVITY: Add a Sidebar Filter
+        st.sidebar.header("⚙️ Dashboard Controls")
+        st.sidebar.markdown("Filter the dashboard by specific metals.")
+        selected_metals = st.sidebar.multiselect(
+            "Select Metals to Display:",
+            options=sorted(metals),
+            default=sorted(metals) # Selects all by default
         )
         
-        # ffill() carries the last known score forward until a new one drops
-        chart_data = chart_data.ffill() 
+        # Filter the dataframe based on user selection
+        filtered_df = df[df['metal'].isin(selected_metals)]
         
-        st.line_chart(chart_data)
+        if not filtered_df.empty:
+            st.subheader("Latest Market Signals")
+            
+            num_columns = 4
+            for i in range(0, len(selected_metals), num_columns):
+                cols = st.columns(num_columns)
+                chunk = selected_metals[i:i + num_columns]
+                
+                for j, metal in enumerate(chunk):
+                    metal_df = filtered_df[filtered_df['metal'] == metal]
+                    if not metal_df.empty:
+                        latest_data = metal_df.iloc[0]
+                        catalyst_text = str(latest_data['catalyst'])
+                        if len(catalyst_text) > 90:
+                            catalyst_text = catalyst_text[:87] + "..."
+                            
+                        with cols[j]:
+                            st.metric(label=f"{metal} Sentiment", value=latest_data['score'])
+                            st.caption(f"**Catalyst:** {catalyst_text}")
+                
+                st.write("---")
 
-        st.subheader("Raw AI Analysis Database")
-        st.dataframe(df, width='stretch') 
-        
+            # 4. BETTER VISUALIZATION: Current Sentiment Bar Chart
+            st.subheader("Current Market Sentiment Ranking")
+            st.markdown("Average sentiment of the most recent news batch.")
+            
+            # Calculate the average sentiment for the selected metals
+            avg_sentiment = filtered_df.groupby('metal')['score'].mean().sort_values(ascending=False)
+            st.bar_chart(avg_sentiment)
+
+            st.subheader("Raw AI Analysis Database")
+            st.dataframe(filtered_df, width='stretch') 
+        else:
+            st.warning("Please select at least one metal from the sidebar.")
+            
     else:
         st.info("The database is currently empty. Waiting for n8n to send data...")
 

@@ -65,10 +65,13 @@ try:
 
         st.subheader("Sentiment Trend Over Time")
         
-        # CHART UPGRADE: Pivot and forward-fill so lines connect properly
-        chart_df = df.copy()
-        chart_df.set_index(time_col, inplace=True)
-        chart_data = chart_df.pivot(columns='metal', values='score')
+       # CHART UPGRADE: Use pivot_table to safely average duplicate timestamps
+        chart_data = df.pivot_table(
+            index=time_col, 
+            columns='metal', 
+            values='score', 
+            aggfunc='mean'
+        )
         
         # ffill() carries the last known score forward until a new one drops
         chart_data = chart_data.ffill() 

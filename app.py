@@ -8,7 +8,7 @@ st.markdown("An autonomous AI pipeline analyzing global news to generate market 
 
 # The public CSV export URL for your specific Google Sheet
 SHEET_ID = "13sV6AHcNS6hBec1HQx33C7A_xV0A1n6NGByctdBw9Mw"
-CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=0"
+CSV_URL = f"https://docs.google.com/spreadsheets/d/1F2CRDPbZsgZgsFBOP8i97OB5jn_VXcw78u9A0dbQe_Q/edit?gid=0#gid=0"
 
 # Cache the data for 10 minutes so it doesn't overload Google Sheets
 @st.cache_data(ttl=600)

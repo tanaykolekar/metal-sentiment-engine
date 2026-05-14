@@ -3,6 +3,7 @@ import pandas as pd
 from data.loader import fetch_and_clean_data
 from components.charts import render_sentiment_ranking
 from components.tables import render_interactive_table
+from components.charts import render_sentiment_ranking, render_time_series
 
 # 1. Page Config MUST be the first command
 st.set_page_config(page_title="Metal Insights", layout="wide", page_icon="⚡")
@@ -60,8 +61,8 @@ if not filtered_df.empty:
 
     with tab2:
         st.subheader("Time-Series Volatility")
-        st.info("Implement Plotly Line Chart here grouped by metal and timestamp.")
-        # Future addition: Time series tracking
+        # Pass the filtered dataframe and the timestamp column name
+        render_time_series(filtered_df, time_col)
 
     with tab3:
         st.subheader("Interactive Audit Log")

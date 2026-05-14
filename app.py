@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 from data.loader import fetch_and_clean_data
 from components.charts import render_sentiment_ranking
 from components.tables import render_interactive_table

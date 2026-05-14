@@ -1,9 +1,7 @@
 import streamlit as st
 import pandas as pd
 from data.loader import fetch_and_clean_data
-from components.charts import render_sentiment_ranking
 from components.tables import render_interactive_table
-from components.charts import render_sentiment_ranking, render_time_series
 from components.market_data import render_live_ticker
 from components.charts import render_sentiment_matrix, render_time_series
 
@@ -63,7 +61,7 @@ if not filtered_df.empty:
                 st.caption(f"{cat_text[:80]}..." if len(cat_text) > 80 else cat_text)
         
         st.markdown("<br>", unsafe_allow_html=True) # Spacing
-        render_sentiment_matrix(filtered_df)
+        render_sentiment_matrix(filtered_df) 
 
     with tab2:
         st.subheader("Time-Series Volatility")

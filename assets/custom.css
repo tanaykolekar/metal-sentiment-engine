@@ -1,1 +1,18 @@
+/* Hide Streamlit Branding */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
 
+/* Premium Card Styling */
+div[data-testid="metric-container"] {
+    background-color: #1E293B;
+    border: 1px solid #334155;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+div[data-testid="metric-container"]:hover {
+    transform: translateY(-2px);
+    border-color: #3B82F6;
+}

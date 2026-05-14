@@ -4,6 +4,7 @@ from data.loader import fetch_and_clean_data
 from components.charts import render_sentiment_ranking
 from components.tables import render_interactive_table
 from components.charts import render_sentiment_ranking, render_time_series
+from components.market_data import render_live_ticker
 
 # 1. Page Config MUST be the first command
 st.set_page_config(page_title="Metal Insights", layout="wide", page_icon="⚡")
@@ -35,6 +36,7 @@ st.title("Commodity Sentiment Intelligence")
 st.markdown("Real-time AI analysis of global macroeconomic catalysts.")
 
 if not filtered_df.empty:
+    render_live_ticker(selected_metals)
     # 6. TABBED NAVIGATION (Crucial for SaaS feel)
     tab1, tab2, tab3 = st.tabs(["📊 Executive Dashboard", "📈 Trend Analysis", "🗄️ Raw AI Database"])
     

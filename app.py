@@ -5,6 +5,7 @@ from components.charts import render_sentiment_ranking
 from components.tables import render_interactive_table
 from components.charts import render_sentiment_ranking, render_time_series
 from components.market_data import render_live_ticker
+from components.charts import render_sentiment_matrix, render_time_series
 
 # 1. Page Config MUST be the first command
 st.set_page_config(page_title="Metal Insights", layout="wide", page_icon="⚡")
@@ -48,18 +49,21 @@ if not filtered_df.empty:
         cols = st.columns(4)
         for i, row in enumerate(latest_signals.itertuples()):
             with cols[i % 4]:
+                # FIX: Add + and - signs so Streamlit colors the arrows correctly
+                delta_str = "+ Bullish" if row.score > 0 else "- Bearish" if row.score < 0 else "Neutral"
+                
                 st.metric(
                     label=f"{row.metal}", 
                     value=f"{row.score}",
-                    delta="Bullish" if row.score > 0 else "Bearish" if row.score < 0 else "Neutral",
-                    delta_color="normal"
+                    delta=delta_str,
+                    delta_color="normal" if row.score != 0 else "off"
                 )
                 # Truncate string gracefully
                 cat_text = str(row.catalyst)
                 st.caption(f"{cat_text[:80]}..." if len(cat_text) > 80 else cat_text)
         
         st.markdown("<br>", unsafe_allow_html=True) # Spacing
-        render_sentiment_ranking(filtered_df)
+        render_sentiment_matrix(filtered_df)
 
     with tab2:
         st.subheader("Time-Series Volatility")

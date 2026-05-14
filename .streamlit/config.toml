@@ -1,1 +1,6 @@
-
+[theme]
+primaryColor = "#3B82F6" # Elegant Blue
+backgroundColor = "#0F172A" # Tailwind Slate 900
+secondaryBackgroundColor = "#1E293B" # Tailwind Slate 800
+textColor = "#F8FAFC" # Slate 50
+font = "sans serif"

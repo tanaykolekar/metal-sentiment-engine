@@ -4,6 +4,7 @@ from data.loader import fetch_and_clean_data
 from components.tables import render_interactive_table
 from components.market_data import render_live_ticker
 from components.charts import render_sentiment_matrix, render_time_series
+from components.intelligence import render_executive_briefing, render_theme_heatmap
 
 # 1. Page Config MUST be the first command
 st.set_page_config(page_title="Metal Insights", layout="wide", page_icon="⚡")
@@ -37,7 +38,7 @@ st.markdown("Real-time AI analysis of global macroeconomic catalysts.")
 if not filtered_df.empty:
     render_live_ticker(selected_metals)
     # 6. TABBED NAVIGATION (Crucial for SaaS feel)
-    tab1, tab2, tab3 = st.tabs(["📊 Executive Dashboard", "📈 Trend Analysis", "🗄️ Raw AI Database"])
+    tab1, tab2, tab3, tab4 = st.tabs(["📊 Executive Dashboard", "📈 Trend Analysis", "🗄️ Raw AI Database", "🧠 Strategic Intelligence"])
     
     with tab1:
         st.subheader("Market Movers")
@@ -71,6 +72,10 @@ if not filtered_df.empty:
     with tab3:
         st.subheader("Interactive Audit Log")
         render_interactive_table(filtered_df)
+    with tab4:
+        render_executive_briefing(filtered_df)
+        st.markdown("---")
+        render_theme_heatmap(filtered_df)   
 
 else:
     st.warning("No data available for the selected portfolio.")

@@ -5,6 +5,7 @@ from components.tables import render_interactive_table
 from components.market_data import render_live_ticker
 from components.charts import render_sentiment_matrix, render_time_series
 from components.intelligence import render_executive_briefing, render_theme_heatmap
+from components.ui import render_premium_kpi
 
 # 1. Page Config MUST be the first command
 st.set_page_config(page_title="Metal Insights", layout="wide", page_icon="⚡")
@@ -37,32 +38,28 @@ st.markdown("Real-time AI analysis of global macroeconomic catalysts.")
 
 if not filtered_df.empty:
     render_live_ticker(selected_metals)
+    
     # 6. TABBED NAVIGATION (Crucial for SaaS feel)
     tab1, tab2, tab3, tab4 = st.tabs(["📊 Executive Dashboard", "📈 Trend Analysis", "🗄️ Raw AI Database", "🧠 Strategic Intelligence"])
     
     with tab1:
-        st.subheader("Market Movers")
+        # Premium stylized header
+        st.markdown("<h3 style='color: #c9d1d9; font-weight: 400; margin-bottom: 1rem;'>Market Movers</h3>", unsafe_allow_html=True)
+        
         # Get the top 4 most volatile/recent signals
         latest_signals = filtered_df.drop_duplicates(subset=['metal'], keep='first').head(4)
         
         cols = st.columns(4)
         for i, row in enumerate(latest_signals.itertuples()):
             with cols[i % 4]:
-                # FIX: Add + and - signs so Streamlit colors the arrows correctly
-                delta_str = "+ Bullish" if row.score > 0 else "- Bearish" if row.score < 0 else "Neutral"
-                
-                st.metric(
-                    label=f"{row.metal}", 
-                    value=f"{row.score}",
-                    delta=delta_str,
-                    delta_color="normal" if row.score != 0 else "off"
-                )
-                # Truncate string gracefully
-                cat_text = str(row.catalyst)
-                st.caption(f"{cat_text[:80]}..." if len(cat_text) > 80 else cat_text)
+                # Use our new premium HTML card instead of native metrics!
+                render_premium_kpi(row.metal, row.score, row.catalyst)
         
         st.markdown("<br>", unsafe_allow_html=True) # Spacing
-        render_sentiment_matrix(filtered_df) 
+        
+        # Wrap the chart in a container to give it boundaries
+        with st.container():
+            render_sentiment_matrix(filtered_df) 
 
     with tab2:
         st.subheader("Time-Series Volatility")
@@ -72,6 +69,7 @@ if not filtered_df.empty:
     with tab3:
         st.subheader("Interactive Audit Log")
         render_interactive_table(filtered_df)
+        
     with tab4:
         render_executive_briefing(filtered_df)
         st.markdown("---")

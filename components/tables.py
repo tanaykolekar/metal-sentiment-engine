@@ -11,7 +11,7 @@ def render_interactive_table(df):
     AgGrid(
         df,
         gridOptions=gridOptions,
-        theme='alpine-dark', 
+        theme='streamlit',
         height=500,
         fit_columns_on_grid_load=True
     )

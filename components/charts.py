@@ -98,3 +98,32 @@ def render_time_series(df, time_col):
     )
 
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+
+def render_volatility_distribution(df):
+    """Renders a box plot showing sentiment volatility, spread, and outliers."""
+    
+    st.markdown("<h4 style='color: #c9d1d9; font-weight: 400; margin-top: 2rem; margin-bottom: 0.5rem;'>Asset Volatility Distribution</h4>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #8b949e; font-size: 0.85rem;'>Analyzes the spread, median, and outliers of market sentiment. Wider distributions indicate higher market uncertainty.</p>", unsafe_allow_html=True)
+
+    # Build the Box Plot with underlying data points visible
+    fig = px.box(
+        df,
+        x='score',
+        y='metal',
+        color='metal',
+        points="all", # This is the magic trick: shows every article as a dot alongside the box
+        hover_data=['catalyst'] # Hovering over a dot reveals the exact news headline
+    )
+
+    fig.update_layout(
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        font=dict(color="#F8FAFC"),
+        xaxis=dict(showgrid=True, gridcolor='#334155', title="Sentiment Score", range=[-1.1, 1.1]),
+        yaxis=dict(showgrid=True, gridcolor='#334155', title=""),
+        margin=dict(l=0, r=0, t=20, b=0),
+        height=450,
+        showlegend=False # Hide legend since the Y-axis already labels the metals
+    )
+
+    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})

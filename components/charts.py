@@ -17,9 +17,9 @@ def render_sentiment_matrix(df):
         x='Avg_Sentiment',
         y='News_Volume',
         text='metal',
-        size='News_Volume', # Bubbles get larger with more news
+        size='News_Volume', 
         color='Avg_Sentiment',
-        color_continuous_scale=['#EF4444', '#475569', '#10B981'], # Red -> Slate -> Green
+        color_continuous_scale=['#EF4444', '#475569', '#10B981'], 
         range_color=[-1, 1]
     )
 
@@ -30,12 +30,12 @@ def render_sentiment_matrix(df):
         textfont=dict(color='#F8FAFC', size=12)
     )
 
-    # 4. Draw Quadrant Crosshairs (X=0 for Neutral, Y=Median Volume)
+    # 4. Draw Quadrant Crosshairs
     median_vol = matrix_df['News_Volume'].median()
     fig.add_vline(x=0, line_width=2, line_dash="dot", line_color="#475569")
     fig.add_hline(y=median_vol, line_width=2, line_dash="dot", line_color="#475569")
 
-    # 5. Add Background Watermark Annotations for the Quadrants
+    # 5. Add Background Watermark Annotations
     max_vol = matrix_df['News_Volume'].max() + 1
     fig.add_annotation(x=0.5, y=max_vol, text="High Buzz / Bullish", showarrow=False, font=dict(color="#10B981", size=14), opacity=0.3)
     fig.add_annotation(x=-0.5, y=max_vol, text="High Buzz / Bearish", showarrow=False, font=dict(color="#EF4444", size=14), opacity=0.3)
@@ -50,14 +50,15 @@ def render_sentiment_matrix(df):
         yaxis=dict(showgrid=True, gridcolor='#334155', title="News Volume (Article Count)"),
         margin=dict(l=0, r=0, t=40, b=0),
         height=500,
-        coloraxis_showscale=False # Hides the messy color scale bar on the right
+        coloraxis_showscale=False 
     )
 
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
+
 def render_time_series(df, time_col):
     """Renders a continuous time-series line chart with forward-filled data."""
-    # 1. Pivot and aggregate to average out duplicate timestamps
+    # 1. Pivot and aggregate
     chart_df = df.pivot_table(
         index=time_col, 
         columns='metal', 
@@ -65,10 +66,10 @@ def render_time_series(df, time_col):
         aggfunc='mean'
     )
     
-    # 2. Forward-fill empty spaces so lines connect seamlessly, then reset index
+    # 2. Forward-fill empty spaces
     chart_df = chart_df.ffill().reset_index()
 
-    # 3. Melt the dataframe back into a long format which Plotly Express prefers
+    # 3. Melt the dataframe
     melted_df = chart_df.melt(
         id_vars=time_col, 
         value_vars=chart_df.columns[1:], 
@@ -76,7 +77,7 @@ def render_time_series(df, time_col):
         value_name='Sentiment'
     )
 
-    # 4. Build the premium Plotly Express chart
+    # 4. Build the Plotly Express chart
     fig = px.line(
         melted_df, 
         x=time_col, 
@@ -99,6 +100,7 @@ def render_time_series(df, time_col):
 
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
+
 def render_volatility_distribution(df):
     """Renders a box plot showing sentiment volatility, spread, and outliers."""
     
@@ -111,8 +113,8 @@ def render_volatility_distribution(df):
         x='score',
         y='metal',
         color='metal',
-        points="all", # This is the magic trick: shows every article as a dot alongside the box
-        hover_data=['catalyst'] # Hovering over a dot reveals the exact news headline
+        points="all", 
+        hover_data=['catalyst'] 
     )
 
     fig.update_layout(
@@ -123,7 +125,7 @@ def render_volatility_distribution(df):
         yaxis=dict(showgrid=True, gridcolor='#334155', title=""),
         margin=dict(l=0, r=0, t=20, b=0),
         height=450,
-        showlegend=False # Hide legend since the Y-axis already labels the metals
+        showlegend=False 
     )
 
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})

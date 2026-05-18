@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from components.charts import render_sentiment_matrix, render_time_series, render_volatility_distribution
 from data.loader import fetch_and_clean_data
 from components.tables import render_interactive_table
 from components.market_data import render_live_ticker
@@ -62,9 +63,16 @@ if not filtered_df.empty:
             render_sentiment_matrix(filtered_df) 
 
     with tab2:
-        st.subheader("Time-Series Volatility")
-        # Pass the filtered dataframe and the timestamp column name
-        render_time_series(filtered_df, time_col)
+     
+        with st.container():
+            st.markdown("<h3 style='color: #c9d1d9; font-weight: 400; margin-bottom: 1rem;'>Time-Series Momentum</h3>", unsafe_allow_html=True)
+            render_time_series(filtered_df, time_col)
+        
+        st.markdown("<hr style='border: 1px solid #30363d; margin-top: 2rem; margin-bottom: 1rem;'>", unsafe_allow_html=True)
+        
+
+        with st.container():
+            render_volatility_distribution(filtered_df)
 
     with tab3:
         st.subheader("Interactive Audit Log")

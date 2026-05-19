@@ -46,13 +46,14 @@ def render_theme_heatmap(df):
         Avg_Sentiment=('score', 'mean')
     ).reset_index()
 
-    # Build the Treemap
+    
     fig = px.treemap(
         theme_df, 
         path=[px.Constant("Global Market Drivers"), 'theme', 'metal'],
         values='Volume',
         color='Avg_Sentiment',
-        color_continuous_scale=['#EF4444', '#475569', '#10B981'],
+        # UPDATED: High-contrast financial terminal color scale
+        color_continuous_scale=['#FF3333', '#0E1117', '#00FF44'], 
         color_continuous_midpoint=0
     )
     
